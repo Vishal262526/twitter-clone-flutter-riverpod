@@ -16,10 +16,12 @@ abstract class IAuthAPI {
     required String password,
   });
 
-  FutureEither<Account> signin({
+  FutureEither<Session> login({
     required String email,
     required String password,
   });
+
+  Future<User?> getAuthState();
 }
 
 class AuthAPI implements IAuthAPI {
@@ -27,6 +29,18 @@ class AuthAPI implements IAuthAPI {
   AuthAPI({
     required Account account,
   }) : _account = account;
+
+  // Get the User Authentication Status (if user is logged in reutnr User object otherwise return null)
+  @override
+  Future<User?> getAuthState() async {
+    try {
+      return await _account.get();
+    } on AppwriteException catch (e) {
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 
   @override
   FutureEither<User> signup(
@@ -45,9 +59,18 @@ class AuthAPI implements IAuthAPI {
   }
 
   @override
-  FutureEither<Account> signin(
-      {required String email, required String password}) {
-    // TODO: implement signup
-    throw UnimplementedError();
+  FutureEither<Session> login(
+      {required String email, required String password}) async {
+    try {
+      final session =
+          await _account.createEmailSession(email: email, password: password);
+
+      return right(session);
+    } on AppwriteException catch (e, stackTrace) {
+      return left(
+          Failure(errorMessage: e.message ?? "Error", stackTrace: stackTrace));
+    } catch (e, stackTrace) {
+      return left(Failure(errorMessage: e.toString(), stackTrace: stackTrace));
+    }
   }
 }
